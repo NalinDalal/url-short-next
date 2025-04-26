@@ -203,6 +203,16 @@ flowchart TD
     G --> H([end])
 ```
 
+```mermaid
+flowchart LR
+    A[User (Laptop / Phone)] -->|1. GET https://tinyurl.com/zn9edcu| B(Load Balancer)
+    B -->|2| C(Web Servers)
+    C -->|3| D(Cache)
+    C -->|4| E(Database)
+    C -->|5. Return long URL: https://en.wikipedia.org/wiki/Systems_design| A
+
+```
+
 
 # Scope of the Short URL Generator
 
