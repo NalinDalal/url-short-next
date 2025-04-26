@@ -162,26 +162,31 @@ Then we assign the character indexes to the remainders, starting from assigning 
 ## Converting base-58 to base-10
 multiply each character index (value column from the table above) by the number of 58s that position holds, and add all the individual multiplication results.
 
-# scope of the short URL generator
-- The generated short URL should contain alphanumeric characters.
+# Scope of the Short URL Generator
 
-- None of the characters should look alike.
+- The generated short URL should contain **alphanumeric characters**.
+- Characters that **look alike** should be **avoided**.
+- The **default minimum length** of a generated short URL should be **six characters**.
 
-- The minimum default length of the generated short URL should be six characters.
+### Number Range
+- **Starting Range**: 1 to (2⁶⁴ - 1)
+- **Ending Point**: Depends on the maximum utilization of 64 bits.
+- **Number of digits** = (Total bits available) / (Bits needed to represent one digit)
 
-Starting range: 1 to (2^64 -1)
-Ending Point: depends on the maximum utilization of 64 bits
-no of digit= total bits available/no of bit to represent one digit
-
-Base 10: log(2)10->64/log(2)10=20
-Base 58: log(2)58->64/log(2)58=11
+### Example Calculations
+- **Base 10**: log₂(10) → 64 / log₂(10) ≈ **20 digits**
+- **Base 58**: log₂(58) → 64 / log₂(58) ≈ **11 digits**
 
 ## Sequencer Lifetime
-- Total numbers available in the sequencer = 2^64−10^9 (starting from 1 Billion as discussed above)
-- Number of requests per year =  200 Million per month×12=2.4 Billion
--  lifetime of the sequencer =  total numbers available / yearly requests = 2^ 64 −10 ^9/2.4 Billio =7,686,143,363.63 years
 
+- **Total numbers available**: 2⁶⁴ − 10⁹ (starting after 1 billion).
+- **Number of requests per year**:  
+  200 Million requests/month × 12 months = **2.4 Billion** requests/year.
+- **Lifetime of the sequencer**:  
+  (2⁶⁴ − 10⁹) ÷ 2.4 Billion ≈ **7,686,143,363.63 years**.
 
-# Coding->
-![freecodecamp blog](https://www.freecodecamp.org/news/build-a-scalable-url-shortener-with-distributed-caching-using-redis/?s=0)
-![coding challenges](https://codingchallenges.fyi/challenges/challenge-url-shortener)
+# Coding Resources
+
+- [FreeCodeCamp Blog: Build a Scalable URL Shortener](https://www.freecodecamp.org/news/build-a-scalable-url-shortener-with-distributed-caching-using-redis/?s=0)
+- [Coding Challenges: URL Shortener Challenge](https://codingchallenges.fyi/challenges/challenge-url-shortener)
+
