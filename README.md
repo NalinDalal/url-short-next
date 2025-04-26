@@ -236,8 +236,136 @@ flowchart LR
 - **Lifetime of the sequencer**:  
   (2⁶⁴ − 10⁹) ÷ 2.4 Billion ≈ **7,686,143,363.63 years**.
 
-# Coding Resources
+# Architecture
+1. **API Server:** Handles requests for shortening and retrieving URLs.
+create a REST API that will allow a client to add a URL to the list of URLs that are currently shortened.
+already discussed about HasFunction for hashing of long url to small one.
+return a suitable HTTP status code when the request succeeds, along with the shortened URL, return it as JSON using the structure:
+```json
+{
+    "key":"wsf5f",
+    "long_url":"https://www.google.com",
+    "short_url":"http://localhost/wsf5f"
+}
+```
 
-- [FreeCodeCamp Blog: Build a Scalable URL Shortener](https://www.freecodecamp.org/news/build-a-scalable-url-shortener-with-distributed-caching-using-redis/?s=0)
-- [Coding Challenges: URL Shortener Challenge](https://codingchallenges.fyi/challenges/challenge-url-shortener)
+2. **Redis Caching Layer & Docker:** Uses multiple Redis instances inside docker for distributed caching.
 
+3. **Implementation:** redirect a client request for the shortened URL. To do that you will need to return the relevant HTTP status code (I’d suggest 302 Found) and the Location header.
+extend your REST API to accept a Delete request, which should delete the shortened URL if it exists and take no action if it does not.
+example code:
+```js
+require('dotenv').config();
+const express = require('express');
+const redis = require('redis');
+const shortid = require('shortid');
+
+const app = express();
+app.use(express.json());
+
+const redisClients = [
+  redis.createClient({ host: process.env.REDIS_HOST_1, port: process.env.REDIS_PORT_1 }),
+  redis.createClient({ host: process.env.REDIS_HOST_2, port: process.env.REDIS_PORT_2 }),
+  redis.createClient({ host: process.env.REDIS_HOST_3, port: process.env.REDIS_PORT_3 })
+];
+
+// Hash function to distribute keys among Redis clients
+function getRedisClient(key) {
+  const hash = key.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return redisClients[hash % redisClients.length];
+}
+
+// Endpoint to shorten a URL
+app.post('/shorten', async (req, res) => {
+  const { url } = req.body;
+  if (!url) return res.status(400).send('URL is required');
+
+  const shortId = shortid.generate();
+  const redisClient = getRedisClient(shortId);
+
+  await redisClient.set(shortId, url);
+  res.json({ shortUrl: `http://localhost:${process.env.PORT}/${shortId}` });
+});
+
+// Endpoint to retrieve the original URL
+app.get('/:shortId', async (req, res) => {
+  const { shortId } = req.params;
+  const redisClient = getRedisClient(shortId);
+
+  redisClient.get(shortId, (err, url) => {
+    if (err || !url) {
+      return res.status(404).send('URL not found');
+    }
+    res.redirect(url);
+  });
+});
+
+app.listen(process.env.PORT, () => {
+  console.log(`Server running on port ${process.env.PORT}`);
+});
+```
+
+Caching Invalidation:
+add a expiration time:
+```js
+// Endpoint to shorten a URL with expiration
+app.post('/shorten', async (req, res) => {
+  const { url, ttl } = req.body; // ttl (time-to-live) is optional
+  if (!url) return res.status(400).send('URL is required');
+
+  const shortId = shortid.generate();
+  const redisClient = getRedisClient(shortId);
+
+  await redisClient.set(shortId, url, 'EX', ttl || 3600); // Default TTL of 1 hour
+  res.json({ shortUrl: `http://localhost:${process.env.PORT}/${shortId}` });
+});
+```
+monitoring cache misses:
+```js
+app.get('/:shortId', async (req, res) => {
+  const { shortId } = req.params;
+  const redisClient = getRedisClient(shortId);
+
+  redisClient.get(shortId, (err, url) => {
+    if (err || !url) {
+      console.log(`Cache miss for key: ${shortId}`);
+      return res.status(404).send('URL not found');
+    }
+    console.log(`Cache hit for key: ${shortId}`);
+    res.redirect(url);
+  });
+});
+```
+
+
+```sh
+% curl http://localhost/jlrtPU -i
+HTTP/1.1 302 Found
+content-length: 0
+location: https://www.example.com
+
+% curl http://localhost/rtfdPU -i
+HTTP/1.1 404 Not Found
+content-length: 15
+URL not found
+
+% curl -X DELETE http://localhost/DmrFqF -i
+HTTP/1.1 200 OK
+content-length: 0
+
+% curl http://localhost/DmrFqF -i
+HTTP/1.1 404 Not Found
+content-length: 15
+URL not found
+```
+
+- [FreeCodeCamp Blog: Build a Scalable URL Shortener](https://www.freecodecamp.org/news/build-a-scalable-url-shortener-with-distributed-caching-using-redis/?s=0) -> Done
+- [Coding Challenges: URL Shortener Challenge](https://codingchallenges.fyi/challenges/challenge-url-shortener) -> Done
+
+# Steps of Development:
+1. Add Dependencies
+```sh
+npm install redis shortid dotenv
+```
+
+2. create `.env.local` file
