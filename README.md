@@ -369,3 +369,9 @@ npm install redis shortid dotenv
 ```
 
 2. create `.env.local` file
+
+3. start local instance of 3 redis in docker
+
+4. start development
+
+5. build the app, redirects successfully
