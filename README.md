@@ -91,7 +91,12 @@ Servers needed at peak load=( Number of requests/second )/ RPS of server
 # Design and Deployment of TinyURL
 3 system api: 
 - Shortening a URL
+    POST api/v1/data/shorten
+        - request parameter: {longUrl: longURLString}
+        - return shortURL
 - Redirecting a short URL
+    GET api/v1/shortUrl
+        - Return longURL for HTTP redirection
 - Deleting a short URL 
 
 ## Shortening the URL
@@ -107,12 +112,18 @@ parameters:
 | `custom_alias` | (Optional) A custom short URL key defined by the user. |
 | `expiry_date` | (Optional) The expiration date for the shortened URL. |
 
+say short url looks like: www.tinyurl.com/{hashValue}
+find a hash function that maps longURL to hashValue.
+- Each longURL must be hashed to one hashValue.
+- Each hashValue can be mapped back to the longURL.
+
 ## Redirecting a short URL
 To redirect a short URL, the REST API’s definition will be:
 ```API
 redirectURL(api_dev_key, url_key)
 ```
-
+status code: `301: permanent redirect`. requests are redirected to the long URL server directly.
+            `302: temporary redirect`. subsequent requests for the same URL will be sent to the URL shortening service first. Then, they are redirected to the long URL server.
 parameters:
 | Parameter | Description |
 |-----------|-------------|
@@ -134,8 +145,16 @@ A successful deletion returns a system message, `URL Removed`, conveying the suc
 
 # Components
 
-1. Databases: we will use NoSQL cause not really need to put lot of data: user
-   details, mapped urls
+1. Databases: we will use NoSQL cause not really need to put lot of data: user details, mapped urls
+   store <shortURL, longURL> mapping in a relational database.
+   # URL Table
+
+| PK | **id (auto increment)** |
+|----|--------------------------|
+|    | shortURL                 |
+|    | longURL                  |
+
+
 2. Short-URL generator: sequencer for unique id, base58-encoder to enhance
    Readability of url
 3. Load Balancer
@@ -161,6 +180,29 @@ Then we assign the character indexes to the remainders, starting from assigning 
 
 ## Converting base-58 to base-10
 multiply each character index (value column from the table above) by the number of 58s that position holds, and add all the individual multiplication results.
+
+# Hash Function
+Hash function is used to hash a long URL to a short URL, also known as `hashValue`.
+the length of hash value, since we are using `base-58` so find smallest n such
+that 58^n >=365 billion -> n=7
+length of hash value=7
+
+to eliminate collision b/w url:
+
+# URL Shortening Flowchart
+
+```mermaid
+flowchart TD
+    A([start]) --> B[input: longURL]
+    B --> C[hash function]
+    C --> D[shortURL]
+    D --> E{exist in DB?}
+    E -- yes, has collision --> F[longURL + predefined string]
+    F --> B
+    E -- no --> G[save to DB]
+    G --> H([end])
+```
+
 
 # Scope of the Short URL Generator
 
