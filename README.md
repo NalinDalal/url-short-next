@@ -375,11 +375,3 @@ npm install redis shortid dotenv
 4. start development
 
 5. build the app, redirects successfully
------------------
-```mermaid
-flowchart LR
-    A[Start: URL Input] --> B[Extract Domain & Extension\nBuild Dataset for Phishing/Non-Phishing]
-    B --> C[Site Crawl\nInputs: Logos, Images, Text Content\n(OCR for images, HTML via crawler, JS rendering)]
-    C --> D[Process with GPT Model]
-    D --> E[Output: Phishing / Non-Phishing]
-```
